@@ -26,9 +26,7 @@ This project was designed for simplicity, clarity, and team collaboration, makin
 ---
 
 ## 🖼️ Screenshots
-
 ### Main Page – Invitation Form & Guest Table
-## 🖼️ Screenshots
 <p align="center">
   <img src="inviteTracker.png" width="900" />
 </p>
