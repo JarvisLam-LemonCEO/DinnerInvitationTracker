@@ -8,6 +8,7 @@ function e($str) {
 $success = $_GET["success"] ?? "";
 $error   = $_GET["error"] ?? "";
 
+
 // Fetch invites
 $invites = [];
 $res = $conn->query(
@@ -29,6 +30,21 @@ $gres = $conn->query(
 while ($g = $gres->fetch_assoc()) {
   $guestsByInvite[$g["invite_id"]][] = $g;
 }
+  
+  $summary = [
+    "CONFIRMED"     => [],
+    "NOT_CONFIRMED" => [],
+    "PENDING"       => []
+  ];
+  
+  foreach ($guestsByInvite as $inviteId => $guests) {
+    foreach ($guests as $g) {
+      $status = $g["rsvp_status"] ?: "PENDING";
+      if (!isset($summary[$status])) $status = "PENDING";
+      $summary[$status][] = $g["guest_name"];
+    }
+  }
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -101,8 +117,97 @@ while ($g = $gres->fetch_assoc()) {
     .guestLeft{ display:flex; gap:10px; align-items:center; }
     .guestName{ font-size:13px; }
     .actions{ display:flex; gap:8px; align-items:center; }
+    
+    /* ===== RSVP SUMMARY CARDS ===== */
+    
+    .summary-cards{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      padding: 18px;
+    }
+    
+    .summary-card{
+      background: linear-gradient(
+        180deg,
+        rgba(15,27,51,.95),
+        rgba(10,18,36,.92)
+      );
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .summary-card::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: radial-gradient(
+        600px 200px at -10% -20%,
+        rgba(255,255,255,.06),
+        transparent 60%
+      );
+      pointer-events:none;
+    }
+    
+    .summary-card h3{
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    
+    .summary-count{
+      font-size: 34px;
+      font-weight: 800;
+      margin: 8px 0 12px;
+      letter-spacing: .5px;
+    }
+    
+    .summary-card ul{
+      margin: 0;
+      padding-left: 18px;
+      font-size: 14px;
+    }
+    
+    .summary-card li{
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    
+    .summary-card em{
+      color: rgba(159,176,208,.8);
+    }
+    
+    /* Status accents */
+    .summary-card.confirmed{
+      border-left: 5px solid var(--good);
+    }
+    .summary-card.confirmed .summary-count{
+      color: var(--good);
+    }
+    
+    .summary-card.not-confirmed{
+      border-left: 5px solid var(--danger);
+    }
+    .summary-card.not-confirmed .summary-count{
+      color: var(--danger);
+    }
+    
+    .summary-card.pending{
+      border-left: 5px solid var(--accent);
+    }
+    .summary-card.pending .summary-count{
+      color: var(--accent);
+    }
+
 
     footer{ margin-top: 16px; color: rgba(159,176,208,.8); font-size: 12px; text-align:center; }
+    
   </style>
 </head>
 <body>
@@ -138,7 +243,11 @@ while ($g = $gres->fetch_assoc()) {
         </div>
       </section>
 
+  
+  
       <section class="card">
+
+
         <div class="head"><strong>Invitation List</strong><span class="pill"><?php echo count($invites); ?> record(s)</span></div>
         <div class="body" style="padding:0">
           <div style="overflow:auto">
@@ -208,11 +317,69 @@ while ($g = $gres->fetch_assoc()) {
           </div>
         </div>
       </section>
-    </div>
+  
+  
+      <section class="card">
+        <div class="head">
+          <strong>RSVP Summary</strong>
+          <span class="pill"><?= count($summary["CONFIRMED"]) + count($summary["NOT_CONFIRMED"]) + count($summary["PENDING"]) ?> guests</span>
+        </div>
 
+      
+      <div class="summary-cards">
+        
+        <!-- Confirmed -->
+        <div class="summary-card confirmed">
+          <h3>Confirmed</h3>
+          <div class="summary-count"><?= count($summary["CONFIRMED"]) ?></div>
+          <ul>
+            <?php if ($summary["CONFIRMED"]): ?>
+            <?php foreach ($summary["CONFIRMED"] as $name): ?>
+            <li><?= e($name) ?></li>
+            <?php endforeach; ?>
+            <?php else: ?>
+            <li><em>No confirmed guests</em></li>
+            <?php endif; ?>
+          </ul>
+        </div>
+        
+        <!-- Not Confirmed -->
+        <div class="summary-card not-confirmed">
+          <h3>Not Confirmed</h3>
+          <div class="summary-count"><?= count($summary["NOT_CONFIRMED"]) ?></div>
+          <ul>
+            <?php if ($summary["NOT_CONFIRMED"]): ?>
+            <?php foreach ($summary["NOT_CONFIRMED"] as $name): ?>
+            <li><?= e($name) ?></li>
+            <?php endforeach; ?>
+            <?php else: ?>
+            <li><em>No declined guests</em></li>
+            <?php endif; ?>
+          </ul>
+        </div>
+        
+        <!-- Pending -->
+        <div class="summary-card pending">
+          <h3>Pending</h3>
+          <div class="summary-count"><?= count($summary["PENDING"]) ?></div>
+          <ul>
+            <?php if ($summary["PENDING"]): ?>
+            <?php foreach ($summary["PENDING"] as $name): ?>
+            <li><?= e($name) ?></li>
+            <?php endforeach; ?>
+            <?php else: ?>
+            <li><em>No pending responses</em></li>
+            <?php endif; ?>
+          </ul>
+        </div>
+        
+      </div>
+      </section>
+  
     <footer>
       Designed By Jarvis Lam.
     </footer>
   </div>
 </body>
 </html>
+    
