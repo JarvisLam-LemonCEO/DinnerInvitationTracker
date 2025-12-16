@@ -1,1 +1,1 @@
-# DinnerInvitationTracker
+# Dinner Invitation Tracker
